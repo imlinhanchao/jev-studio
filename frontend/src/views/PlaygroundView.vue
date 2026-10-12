@@ -13,11 +13,12 @@
           <button
             v-for="tpl in decisionStore.templates"
             :key="tpl.id"
-            class="join-item btn btn-xs"
+            class="join-item btn btn-xs flex items-center gap-1"
             :class="decisionStore.selectedTemplateId === tpl.id ? 'btn-primary font-bold' : 'btn-ghost bg-base-100'"
             @click="decisionStore.applyTemplate(tpl)"
           >
-            {{ tpl.name }}
+            <span v-if="tpl.sample_image" class="text-[10px]">📷</span>
+            <span>{{ tpl.name }}</span>
           </button>
         </div>
       </div>
@@ -38,12 +39,166 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
       <!-- Left Column: Input and Questions Builder (col-span-7) -->
       <div class="lg:col-span-7 space-y-5">
+        <!-- Multimodal Image Attachment Card (Available for d1-omni-600M) -->
+        <div v-if="decisionStore.isMultimodal" class="card bg-base-200 border border-base-300">
+          <div class="card-body p-4 sm:p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <label class="font-bold text-sm flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>图片</span>
+                </label>
+              </div>
+
+              <!-- Clear button if image present -->
+              <div v-if="decisionStore.imageUrl" class="flex items-center gap-2">
+                <span class="badge badge-success badge-xs gap-1 font-mono">
+                  <span class="w-1.5 h-1.5 rounded-full bg-success-content"></span>
+                  已就绪
+                </span>
+                <button
+                  class="btn btn-xs btn-ghost text-error"
+                  @click="decisionStore.clearImage"
+                >
+                  移除
+                </button>
+              </div>
+            </div>
+
+            <!-- Image Loaded Preview View -->
+            <div
+              v-if="decisionStore.imageUrl"
+              class="flex items-center gap-3.5 bg-base-100 p-3 rounded-xl border border-base-300 shadow-sm"
+            >
+              <div class="relative group shrink-0">
+                <img
+                  :src="decisionStore.imageUrl"
+                  alt="Multimodal context preview"
+                  class="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg border border-base-300 bg-base-200"
+                />
+              </div>
+
+              <div class="min-w-0 flex-1 space-y-1">
+                <div class="flex items-center gap-2">
+                  <span
+                    class="badge badge-xs font-mono"
+                    :class="decisionStore.imageType === 'upload' ? 'badge-primary' : 'badge-neutral'"
+                  >
+                    {{ decisionStore.imageType === 'upload' ? '本地上传' : '图片 URL' }}
+                  </span>
+                  <span class="text-xs font-bold text-base-content/85 truncate">
+                    {{ decisionStore.imageName || 'Multimodal Image' }}
+                  </span>
+                </div>
+                <div class="text-[11px] text-base-content/50 truncate font-mono">
+                  {{ decisionStore.imageUrl.startsWith('data:') ? 'Base64 数据流已注入' : decisionStore.imageUrl }}
+                </div>
+                <div class="flex items-center gap-2 pt-0.5">
+                  <button
+                    class="btn btn-xs btn-outline btn-ghost text-primary text-[11px] h-6 min-h-0"
+                    @click="triggerFileInput"
+                  >
+                    重新上传
+                  </button>
+                  <button
+                    class="btn btn-xs btn-ghost text-base-content/60 text-[11px] h-6 min-h-0"
+                    @click="switchImageMode('url')"
+                  >
+                    填写 URL
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Image Selection Tabs (When no image loaded) -->
+            <div v-else class="space-y-3">
+              <!-- Upload Mode vs URL Mode Switcher Tabs -->
+              <div class="tabs tabs-boxed tabs-xs inline-flex bg-base-300/60 p-1">
+                <a
+                  class="tab text-xs"
+                  :class="{ 'tab-active font-bold': imageMode === 'upload' }"
+                  @click="imageMode = 'upload'"
+                >
+                  📁 本地上传
+                </a>
+                <a
+                  class="tab text-xs"
+                  :class="{ 'tab-active font-bold': imageMode === 'url' }"
+                  @click="imageMode = 'url'"
+                >
+                  🔗 填写图片地址
+                </a>
+              </div>
+
+              <!-- Mode 1: Local File Upload -->
+              <div v-if="imageMode === 'upload'">
+                <input
+                  ref="fileInputRef"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif,image/bmp"
+                  class="hidden"
+                  @change="handleFileUpload"
+                />
+                <div
+                  class="border-2 border-dashed border-base-300 hover:border-primary/60 transition-all rounded-xl p-4 text-center cursor-pointer bg-base-100/60 hover:bg-base-100 group"
+                  @click="triggerFileInput"
+                  @dragover.prevent
+                  @drop.prevent="handleFileDrop"
+                >
+                  <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">📷</div>
+                  <div class="text-xs font-semibold text-base-content/85">
+                    点击选择图片，或将图片文件拖拽至此
+                  </div>
+                  <div class="text-[11px] text-base-content/50 mt-0.5">
+                    支持 PNG, JPG, WEBP, BMP (自动转换为 Data URI 进行前向单步评估)
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mode 2: Image URL Input -->
+              <div v-else class="space-y-2.5">
+                <div class="flex items-center gap-2">
+                  <input
+                    v-model="inputUrl"
+                    type="url"
+                    placeholder="例如：https://example.com/invoice.jpg 或公网图片地址..."
+                    class="input input-bordered input-sm flex-1 text-xs focus:outline-primary"
+                    @keyup.enter="handleUrlSubmit"
+                  />
+                  <button
+                    class="btn btn-sm btn-primary text-xs"
+                    :disabled="!inputUrl.trim()"
+                    @click="handleUrlSubmit"
+                  >
+                    载入图片
+                  </button>
+                </div>
+
+                <!-- Quick Samples -->
+                <div class="flex items-center gap-1.5 text-[11px] text-base-content/60 flex-wrap">
+                  <span class="font-semibold">预置示例:</span>
+                  <button
+                    v-for="sample in sampleImages"
+                    :key="sample.label"
+                    class="btn btn-xs btn-ghost bg-base-300/40 text-[10px] px-2 h-6 min-h-0"
+                    @click="setSampleImage(sample.url, sample.label)"
+                  >
+                    {{ sample.label }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Input Text Card -->
         <div class="card bg-base-200 border border-base-300">
           <div class="card-body p-4 sm:p-5">
             <div class="flex justify-between items-center mb-2">
               <label class="font-bold text-sm flex items-center gap-1.5">
-                <span>待评估输入文本 (Input Context)</span>
+                <span>待评估输入文本</span>
                 <span class="badge badge-xs badge-neutral font-mono">{{ decisionStore.inputText.length }} 字符</span>
               </label>
               <button
@@ -66,9 +221,9 @@
           <div class="card-body p-4 sm:p-5 space-y-4">
             <div class="flex justify-between items-center">
               <div>
-                <h3 class="font-bold text-sm">决策问题 Schema 定义</h3>
+                <h3 class="font-bold text-sm">决策问题</h3>
                 <p class="text-xs text-base-content/60">
-                  支持 Choice (多项选一), Noul (二元判断), Score (量表评分)
+                  支持多项分类, 二元判断, 量规评分
                 </p>
               </div>
               <button
@@ -208,7 +363,7 @@
                 <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                 </svg>
-                执行 {{ currentModelShortName }} 决策
+                执行决策
               </button>
             </div>
 
@@ -282,6 +437,20 @@
                   </div>
                   <div class="text-[9px] text-base-content/50 truncate">
                     {{ decisionStore.currentResponse.model.includes('MiniCPM') ? '2.4B Jev-Tuned' : '600M LFM' }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Multimodal Vision Context Feedback Banner -->
+              <div v-if="decisionStore.isMultimodal && decisionStore.imageUrl" class="flex items-center gap-3 bg-base-100 p-2.5 rounded-lg border border-base-300 shadow-sm">
+                <img :src="decisionStore.imageUrl" alt="Vision Context" class="w-10 h-10 object-cover rounded-lg border border-base-300 shrink-0 bg-base-200" />
+                <div class="min-w-0 flex-1 text-xs">
+                  <div class="flex items-center gap-1.5 font-bold text-base-content/85">
+                    <span>图像视觉特征已融合</span>
+                    <span class="badge badge-success badge-xs font-mono">Vision Patch OK</span>
+                  </div>
+                  <div class="text-[11px] text-base-content/50 truncate font-mono">
+                    {{ decisionStore.imageName || decisionStore.imageUrl }}
                   </div>
                 </div>
               </div>
@@ -763,11 +932,78 @@ function confirmSaveQuestion() {
 const currentModelMeta = computed(() => decisionStore.currentModelMeta)
 const currentModelShortName = computed(() => decisionStore.currentModelShortName)
 
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const imageMode = ref<'upload' | 'url'>('upload')
+const inputUrl = ref('')
+
+const sampleImages = [
+  { label: '示例动物 (拉布拉多犬)', url: 'https://tse1-mm.cn.bing.net/th/id/OIP-C.LS_T9sXWOLjaDoXqjat2_gHaE8' },
+  { label: '发票报销凭证', url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=500' },
+  { label: '服务器报错图', url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=500' },
+  { label: '合同签字文档', url: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=500' },
+]
+
+function triggerFileInput() {
+  fileInputRef.value?.click()
+}
+
+function switchImageMode(mode: 'upload' | 'url') {
+  imageMode.value = mode
+  if (mode === 'upload') {
+    triggerFileInput()
+  }
+}
+
+function processImageFile(file: File) {
+  if (!file.type.startsWith('image/')) {
+    decisionStore.error = '请选择有效的图片文件 (PNG, JPG, WEBP 等)'
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const res = e.target?.result as string
+    if (res) {
+      decisionStore.setImage(res, 'upload', file.name)
+    }
+  }
+  reader.readAsDataURL(file)
+}
+
+function handleFileUpload(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (target.files && target.files[0]) {
+    processImageFile(target.files[0])
+    target.value = ''
+  }
+}
+
+function handleFileDrop(e: DragEvent) {
+  if (e.dataTransfer?.files && e.dataTransfer.files[0]) {
+    processImageFile(e.dataTransfer.files[0])
+  }
+}
+
+function handleUrlSubmit() {
+  const url = inputUrl.value.trim()
+  if (!url) return
+  decisionStore.setImage(url, 'url', url.split('/').pop() || 'image')
+  inputUrl.value = ''
+}
+
+function setSampleImage(url: string, label: string) {
+  decisionStore.setImage(url, 'url', label)
+}
+
 const curlSnippet = computed(() => {
-  const payload = {
+  const payload: any = {
     input: decisionStore.inputText,
     questions: decisionStore.questions,
     model: decisionStore.selectedModelId,
+  }
+  if (decisionStore.isMultimodal && decisionStore.imageUrl) {
+    payload.image = decisionStore.imageUrl.startsWith('data:')
+      ? `${decisionStore.imageUrl.substring(0, 30)}...[base64_data]`
+      : decisionStore.imageUrl
   }
   const keyHeader = keyStore.activePlaygroundKey
     ? `  -H "Authorization: Bearer ${keyStore.activePlaygroundKey}" \\\n`

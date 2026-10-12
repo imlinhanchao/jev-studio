@@ -22,16 +22,19 @@ def count_text_tokens(text: str) -> int:
 
 def calculate_decision_tokens(
     input_text: str,
-    questions: dict[str, QuestionDefinition]
+    questions: dict[str, QuestionDefinition],
+    has_image: bool = False
 ) -> tuple[int, int, int]:
     """
     Calculates token consumption for a Liquid AI decision model evaluation:
-    - prompt_tokens: tokens in the input context + question instructions and criteria
+    - prompt_tokens: tokens in the input context + question instructions and criteria + visual tokens
     - decision_tokens: compute cost of evaluating structured decision heads (calibrated classification tokens)
     - total_tokens: sum of prompt and decision tokens
     """
-    # 1. Input tokens
+    # 1. Input tokens (text tokens + multimodal vision patch tokens if image is provided)
     prompt_tokens = count_text_tokens(input_text)
+    if has_image:
+        prompt_tokens += 128
     
     # 2. Schema tokens (instructions, choices, criteria)
     schema_tokens = 0

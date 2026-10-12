@@ -22,9 +22,19 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing database schemas...")
     await init_db()
     logger.info("JEV Decision Model API service initialized successfully.")
+    
+    # Auto-load real model in background if not preferring local simulation
+    if not settings.PREFER_LOCAL_SIMULATION:
+        import asyncio
+        from app.services.model_engine import model_engine
+        logger.info(f"Triggering background load for real model: {settings.MODEL_ID}...")
+        asyncio.create_task(model_engine.load_real_model())
+
     yield
     # Shutdown
     logger.info("Shutting down JEV Decision Model API service...")
+    from app.services.model_engine import model_engine
+    model_engine.unload_model()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

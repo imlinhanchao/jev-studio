@@ -105,6 +105,35 @@ PREDEFINED_TEMPLATES = [
             ),
         },
     ),
+    DecisionTemplate(
+        id="animal-vision",
+        name="多模态动物识别与特征决策",
+        category="Multimodal Vision",
+        description="基于 Liquid AI 原生多模态视觉单步推理，对图像中的生物进行物种判定、食性分类及危害度评估",
+        sample_input="我需要知道关于这只动物的信息",
+        sample_image="https://tse1-mm.cn.bing.net/th/id/OIP-C.LS_T9sXWOLjaDoXqjat2_gHaE8",
+        questions={
+            "intent": QuestionDefinition(
+                type="choice",
+                instructions="这是什么动物",
+                criteria={
+                    "infrastructure": "猫",
+                    "billing": "鸡",
+                    "general": "狗",
+                },
+            ),
+            "is_critical": QuestionDefinition(
+                type="noul",
+                instructions="这是食草动物吗？",
+                criteria="是食草动物",
+            ),
+            "urgency_score": QuestionDefinition(
+                type="score",
+                instructions="这只动物对人类的危害程度",
+                scale=5,
+            ),
+        },
+    ),
 ]
 
 @router.get("/templates", response_model=list[DecisionTemplate])
@@ -129,9 +158,15 @@ async def predict_decision(
             detail="At least one decision question must be specified.",
         )
 
-    # 1. Calculate tokens
+    if not payload.input.strip() and not payload.image:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Either input text or an image must be provided.",
+        )
+
+    # 1. Calculate tokens (including visual tokens if multimodal image provided)
     prompt_tokens, decision_tokens, total_tokens = calculate_decision_tokens(
-        payload.input, payload.questions
+        payload.input, payload.questions, has_image=bool(payload.image)
     )
 
     # 2. Quota check
@@ -146,7 +181,7 @@ async def predict_decision(
     request_id = f"dec_{uuid.uuid4().hex[:12]}"
     target_model_id = payload.model or model_engine.model_id
     answers, latency_ms, engine_name = await model_engine.predict(
-        payload.input, payload.questions, model_id=payload.model
+        payload.input, payload.questions, model_id=payload.model, image=payload.image
     )
 
     # 4. Token deduction & Usage logging

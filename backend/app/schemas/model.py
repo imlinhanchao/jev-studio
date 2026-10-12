@@ -10,6 +10,7 @@ class ModelItem(BaseModel):
     tags: list[str] = []
     recommended_for: str
     typical_latency_ms: str
+    supports_vision: bool = False
     is_active: bool = False
 
 class ModelSelectRequest(BaseModel):

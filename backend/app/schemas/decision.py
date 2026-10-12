@@ -23,8 +23,12 @@ class QuestionDefinition(BaseModel):
 
 class DecisionRequest(BaseModel):
     input: str = Field(
-        ...,
+        default="",
         description="Text content or structured input for the decision model to evaluate"
+    )
+    image: str | None = Field(
+        default=None,
+        description="Optional image URL or base64 data string for multimodal evaluation (supported by d1-omni-600M)"
     )
     questions: dict[str, QuestionDefinition] = Field(
         ...,
@@ -73,4 +77,5 @@ class DecisionTemplate(BaseModel):
     category: str
     description: str
     sample_input: str
+    sample_image: str | None = None
     questions: dict[str, QuestionDefinition]

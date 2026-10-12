@@ -9,6 +9,7 @@ export interface QuestionDefinition {
 
 export interface DecisionRequest {
   input: string
+  image?: string
   questions: Record<string, QuestionDefinition>
   model?: string
   metadata?: Record<string, any>
@@ -53,5 +54,6 @@ export interface DecisionTemplate {
   category: string
   description: string
   sample_input: string
+  sample_image?: string
   questions: Record<string, QuestionDefinition>
 }

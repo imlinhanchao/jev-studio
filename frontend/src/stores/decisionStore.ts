@@ -11,6 +11,7 @@ export interface ModelOption {
   architecture: string
   latency: string
   provider: string
+  supportsVision: boolean
 }
 
 export const SUPPORTED_DECISION_MODELS: ModelOption[] = [
@@ -22,6 +23,7 @@ export const SUPPORTED_DECISION_MODELS: ModelOption[] = [
     architecture: 'LFM2.5-Encoder-350M',
     latency: '15-35 ms',
     provider: 'Liquid AI',
+    supportsVision: true,
   },
   {
     id: 'MiniCPM5-2B-Jev',
@@ -31,6 +33,7 @@ export const SUPPORTED_DECISION_MODELS: ModelOption[] = [
     architecture: 'MiniCPM-5-2B-Decision',
     latency: '30-65 ms',
     provider: 'OpenBMB',
+    supportsVision: false,
   },
 ]
 
@@ -39,6 +42,10 @@ export const useDecisionStore = defineStore('decision', () => {
   const selectedTemplateId = ref<string>('')
   
   const inputText = ref<string>('')
+  const imageUrl = ref<string>('')
+  const imageType = ref<'upload' | 'url' | null>(null)
+  const imageName = ref<string>('')
+
   const questions = ref<Record<string, QuestionDefinition>>({})
   const selectedModelId = ref<string>('LiquidAI/d1-omni-600M')
   const modelOptions = ref<ModelOption[]>(SUPPORTED_DECISION_MODELS)
@@ -51,8 +58,24 @@ export const useDecisionStore = defineStore('decision', () => {
     return currentModelMeta.value.shortName
   })
 
+  const isMultimodal = computed(() => {
+    return currentModelMeta.value.supportsVision === true
+  })
+
   function selectModel(modelId: string) {
     selectedModelId.value = modelId
+  }
+
+  function setImage(url: string, type: 'upload' | 'url', name = '') {
+    imageUrl.value = url
+    imageType.value = type
+    imageName.value = name
+  }
+
+  function clearImage() {
+    imageUrl.value = ''
+    imageType.value = null
+    imageName.value = ''
   }
   
   const currentResponse = ref<DecisionResponse | null>(null)
@@ -73,6 +96,15 @@ export const useDecisionStore = defineStore('decision', () => {
   function applyTemplate(tpl: DecisionTemplate) {
     selectedTemplateId.value = tpl.id
     inputText.value = tpl.sample_input
+    if (tpl.sample_image) {
+      setImage(tpl.sample_image, 'url', '示例动物 (拉布拉多犬)')
+      // Automatically ensure multimodal model is active
+      if (selectedModelId.value !== 'LiquidAI/d1-omni-600M') {
+        selectedModelId.value = 'LiquidAI/d1-omni-600M'
+      }
+    } else {
+      clearImage()
+    }
     // Deep clone questions
     questions.value = JSON.parse(JSON.stringify(tpl.questions))
     currentResponse.value = null
@@ -92,8 +124,8 @@ export const useDecisionStore = defineStore('decision', () => {
   }
 
   async function runDecision(apiKey?: string) {
-    if (!inputText.value.trim()) {
-      error.value = '请输入需要进行决策判断的文本内容'
+    if (!inputText.value.trim() && !(isMultimodal.value && imageUrl.value)) {
+      error.value = '请输入需要进行决策判断的文本内容，或提供多模态评估图片'
       return
     }
     if (Object.keys(questions.value).length === 0) {
@@ -107,6 +139,7 @@ export const useDecisionStore = defineStore('decision', () => {
     try {
       const payload: DecisionRequest = {
         input: inputText.value,
+        image: isMultimodal.value && imageUrl.value ? imageUrl.value : undefined,
         questions: questions.value,
         model: selectedModelId.value,
       }
@@ -127,6 +160,12 @@ export const useDecisionStore = defineStore('decision', () => {
     modelOptions,
     currentModelMeta,
     currentModelShortName,
+    isMultimodal,
+    imageUrl,
+    imageType,
+    imageName,
+    setImage,
+    clearImage,
     selectModel,
     inputText,
     questions,
