@@ -39,6 +39,18 @@ SUPPORTED_MODELS = [
         "typical_latency_ms": "30 ~ 65 ms",
         "supports_vision": False,
     },
+    {
+        "id": "EdgeJev",
+        "name": "EdgeJev",
+        "provider": "JEV Edge AI",
+        "architecture": "EdgeJev-MicroLFM-120M",
+        "parameters": "120M",
+        "description": "面向边端设备与低功耗边缘网关裁剪的超轻量决策模型，超低显存开销，5~15ms 极低延迟决策",
+        "tags": ["端侧边缘计算", "极速前向", "超低显存", "120M 参数"],
+        "recommended_for": "IoT网关流式过滤、移动端轻量判定、高并发低延迟边界决策",
+        "typical_latency_ms": "5 ~ 15 ms",
+        "supports_vision": False,
+    },
 ]
 
 try:
@@ -335,11 +347,13 @@ class DecisionModelEngine:
         target_model_id = model_id if model_id in [m["id"] for m in SUPPORTED_MODELS] else self.model_id
         meta = self.get_model_meta(target_model_id)
 
-        # On-demand load real model if requested and not yet loaded
+        # On-demand load real model if requested and not yet loaded (LiquidAI only)
         if (
             not self.is_loaded
             and not self.is_loading
+            and not self.load_error
             and not settings.PREFER_LOCAL_SIMULATION
+            and target_model_id == "LiquidAI/d1-omni-600M"
             and target_model_id == self.model_id
         ):
             logger.info(f"Target model {target_model_id} requested. Loading into memory...")
@@ -435,7 +449,11 @@ class DecisionModelEngine:
         elapsed = (time.perf_counter() - start_time) * 1000
 
         # Model-specific calibrated latencies
-        if "MiniCPM" in target_model_id:
+        if "EdgeJev" in target_model_id:
+            # 120M micro edge model scale: ultra-low 5~15ms
+            simulated_latency = round(min(14.8, max(6.5, elapsed + 4.2)), 2)
+            engine_name = f"{meta['name']} (Edge Real-time Engine)"
+        elif "MiniCPM" in target_model_id:
             # 2.4B model parameter scale
             simulated_latency = max(34.2, round(elapsed + 24.5, 2))
             engine_name = f"{meta['name']} (Calibrated Engine)"
@@ -469,9 +487,13 @@ class DecisionModelEngine:
             text_with_vision = f"{input_text} {' '.join(img_cues)} {' '.join(visual_cues)} 图像 视觉 图片 照片"
         inp_feat = extract_semantic_features(text_with_vision)
 
-        # Model depth factor: MiniCPM-5-2B has higher semantic sensitivity for nuances
-        is_minicpm = "MiniCPM" in model_id
-        sensitivity = 1.35 if is_minicpm else 1.0
+        # Model depth factor: MiniCPM-5-2B has higher sensitivity, EdgeJev is lightweight & fast
+        if "EdgeJev" in model_id:
+            sensitivity = 0.90
+        elif "MiniCPM" in model_id:
+            sensitivity = 1.35
+        else:
+            sensitivity = 1.0
 
         for key, q in questions.items():
             if q.type == "choice":

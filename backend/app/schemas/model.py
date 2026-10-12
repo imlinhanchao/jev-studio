@@ -14,7 +14,7 @@ class ModelItem(BaseModel):
     is_active: bool = False
 
 class ModelSelectRequest(BaseModel):
-    model_id: str = Field(..., description="目标模型标识，如 'LiquidAI/d1-omni-600M' 或 'MiniCPM5-2B-Jev'")
+    model_id: str = Field(..., description="目标模型标识，如 'LiquidAI/d1-omni-600M'、'MiniCPM5-2B-Jev' 或 'EdgeJev'")
 
 class ModelStatusResponse(BaseModel):
     model_id: str

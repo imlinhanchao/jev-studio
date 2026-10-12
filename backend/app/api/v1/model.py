@@ -13,7 +13,7 @@ async def get_model_status():
 
 @router.get("/list", response_model=list[ModelItem])
 async def list_available_models():
-    """Returns all supported decision models (Liquid AI d1-omni-600M, MiniCPM5-2B-Jev)."""
+    """Returns all supported decision models (Liquid AI d1-omni-600M, MiniCPM5-2B-Jev, EdgeJev)."""
     return model_engine.get_available_models()
 
 @router.post("/select", response_model=ModelStatusResponse)

@@ -36,7 +36,7 @@ class DecisionRequest(BaseModel):
     )
     model: str | None = Field(
         default=None,
-        description="Optional decision model identifier (e.g. 'LiquidAI/d1-omni-600M' or 'MiniCPM5-2B-Jev')"
+        description="Optional decision model identifier (e.g. 'LiquidAI/d1-omni-600M', 'MiniCPM5-2B-Jev', or 'EdgeJev')"
     )
     metadata: dict[str, Any] | None = Field(
         default=None,

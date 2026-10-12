@@ -157,7 +157,7 @@
     <!-- Subtle Footer -->
     <footer class="footer footer-center p-3 border-t border-base-300 text-xs text-base-content/50">
       <div>
-        <p>© 2026 JEV 决策模型 API · Liquid AI d1-omni & MiniCPM5-2B · LFM Architecture</p>
+        <p>© 2026 JEV 决策模型 API · Liquid AI d1-omni, MiniCPM5-2B & EdgeJev · LFM Architecture</p>
       </div>
     </footer>
   </div>

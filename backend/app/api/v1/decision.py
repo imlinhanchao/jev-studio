@@ -177,7 +177,7 @@ async def predict_decision(
                 detail=f"Insufficient token quota. Required: {total_tokens}, Remaining: {api_key.token_limit - api_key.tokens_used}",
             )
 
-    # 3. Model Inference (Liquid AI d1-omni-600M or MiniCPM5-2B-Jev)
+    # 3. Model Inference (Liquid AI d1-omni-600M, MiniCPM5-2B-Jev, or EdgeJev)
     request_id = f"dec_{uuid.uuid4().hex[:12]}"
     target_model_id = payload.model or model_engine.model_id
     answers, latency_ms, engine_name = await model_engine.predict(

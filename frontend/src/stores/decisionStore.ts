@@ -35,6 +35,16 @@ export const SUPPORTED_DECISION_MODELS: ModelOption[] = [
     provider: 'OpenBMB',
     supportsVision: false,
   },
+  {
+    id: 'EdgeJev',
+    shortName: 'EdgeJev',
+    fullName: 'EdgeJev (Ultra-Edge Decision)',
+    tag: '120M Edge',
+    architecture: 'EdgeJev-MicroLFM-120M',
+    latency: '5-15 ms',
+    provider: 'JEV Edge AI',
+    supportsVision: false,
+  },
 ]
 
 export const useDecisionStore = defineStore('decision', () => {

@@ -211,8 +211,9 @@ onMounted(() => {
 
 const modelStatusText = computed(() => {
   if (modelStore.loading) return '检测模型中...'
+  const isEdgeJev = modelStore.activeModelId?.includes('EdgeJev')
   const isMiniCPM = modelStore.activeModelId?.includes('MiniCPM')
-  const shortName = isMiniCPM ? 'MiniCPM5-2B' : 'd1-omni-600M'
+  const shortName = isEdgeJev ? 'EdgeJev' : (isMiniCPM ? 'MiniCPM5-2B' : 'd1-omni-600M')
   if (modelStore.status?.mode === 'real') return `${shortName} (已加载)`
   return `${shortName} (在线)`
 })

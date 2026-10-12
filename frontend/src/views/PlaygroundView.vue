@@ -433,10 +433,10 @@
                 <div>
                   <div class="text-[10px] text-base-content/60">运行模型</div>
                   <div class="font-mono font-bold text-[11px] truncate text-base-content/90" :title="decisionStore.currentResponse.model">
-                    {{ decisionStore.currentResponse.model.includes('MiniCPM') ? 'MiniCPM5-2B' : 'd1-omni-600M' }}
+                    {{ decisionStore.currentResponse.model.includes('EdgeJev') ? 'EdgeJev' : (decisionStore.currentResponse.model.includes('MiniCPM') ? 'MiniCPM5-2B' : 'd1-omni-600M') }}
                   </div>
                   <div class="text-[9px] text-base-content/50 truncate">
-                    {{ decisionStore.currentResponse.model.includes('MiniCPM') ? '2.4B Jev-Tuned' : '600M LFM' }}
+                    {{ decisionStore.currentResponse.model.includes('EdgeJev') ? '120M Edge' : (decisionStore.currentResponse.model.includes('MiniCPM') ? '2.4B Jev-Tuned' : '600M LFM') }}
                   </div>
                 </div>
               </div>
