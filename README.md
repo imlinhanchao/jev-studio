@@ -7,17 +7,19 @@
 ## 🌟 核心特性
 
 ### 1. 多模型协同决策引擎 (Liquid AI, MiniCPM5-2B-Jev & EdgeJev)
-- **支持模型矩阵**：
-  - `LiquidAI/d1-omni-600M`：专为高吞吐超低延迟场景设计（600M 参数，单步前向推理 15~35ms），支持原生多模态视觉+文本双通道输入，适合网关护栏、实时图文审核与客服工单流转。
-  - `MiniCPM5-2B-Jev`：面壁智能 MiniCPM 5 架构 2B 参数量决策增强微调大模型（2.4B 参数，深度语义泛化 30~65ms），支持复杂行业长文本决策、深层风险研判。
-  - `EdgeJev`：面向边端嵌入式设备与低功耗边缘网关裁剪的超轻量决策模型（120M 参数，5~15ms 极低延迟前向），超低内存开销，适合 IoT 网关流式过滤与移动端边界实时决策。
+- **支持模型矩阵**（三套独立的载入后端）：
+  - `LiquidAI/d1-omni-600M`：专为高吞吐超低延迟场景设计（600M 参数，单步前向推理 15~35ms），支持原生多模态视觉+文本双通道输入。通过 Hugging Face `transformers` + `trust_remote_code` 加载，调用其原生 `system_one`。
+  - `ytbai/MiniCPM5-2B-Jev`：面壁智能 MiniCPM5-2B 上的决策增强微调模型（2.0B 参数，LoRA + 原生 `lm_head` 字母读出）。通过 `huggingface_hub` 拉取 checkpoint，并用仓库自带的 `model.py`（`MiniCPMSystemOne`）载入。
+  - `EdgeJev`：离线可用的边端类型化决策模型（ONNX + INT8，运行时无需 torch）。通过 **pip 包 [`edgejev`](https://pypi.org/project/edgejev/)** 载入，首次使用会自动执行 `edgejev build` 生成模型目录。
 - **三大约束决策原语**：
   - `choice`：多项分类选择，输出类别概率分布与置信度最高项。
   - `noul`：二元判断（Yes / No），返回判定布尔值与校准概率。
   - `score`：量规有序打分，在指定量表（如 1~5 分）内进行强度评级。
 - **双模态支持引擎**：
-  - **原生引擎**：支持通过 Hugging Face `transformers` 加载模型权重（支持 Apple Silicon `mps`、NVIDIA `cuda` 与 `cpu`）。
-  - **高精度校准仿真引擎**：无权重或离线环境下自动平滑启动，百分百兼容真实输出结构与 Token 计量。
+  - **按模型分派后端**：每个模型由独立后端载入（`liquid` / `minicpm` / `edgejev`），支持 Apple Silicon `mps`、NVIDIA `cuda` 与 `cpu`。
+  - **按需加载**：模型权重在切换模型时载入；若运行时模型尚未载入或载入失败，推理接口将返回 `503` 并向前端提示具体原因（不再使用仿真回退）。
+  - **载入进度**：前端模型面板实时显示载入阶段与进度（`/api/v1/model/progress`）。
+  - **简单缓存（可选）**：默认单模型驻留（切换即卸载上一个）；可在前端开启「简单缓存」以保留已加载模型，切回时无需重新载入，并支持手动卸载任一驻留模型（`/api/v1/model/cache-mode`、`/api/v1/model/unload?model_id=...`）。默认值由 `MODEL_CACHE_ENABLED` 控制。
 
 ### 2. API Key 鉴权与配额管理
 - **密码学安全**：生成 `jev-live-<hex>` 格式密钥，数据库仅存储 SHA-256 哈希值与部分脱敏前缀（如 `jev-live-b7e...70ae`）。
@@ -222,4 +224,5 @@ print(f"推理延迟: {data['latency_ms']} ms")
 
 ## 🔒 生产部署建议
 - 可在 `.env` 中指定 `DATABASE_URL`（如 PostgreSQL）替代默认 SQLite。
-- 若需下载并运行真实 `LiquidAI/d1-omni-600M` 权重（约 1.2GB），服务器需联网访问 Hugging Face 并确保具备相应算力支持（MPS 或 CUDA）。
+- 各模型权重均在切换模型时按需下载，服务器需联网访问 Hugging Face 并具备相应算力（MPS / CUDA / CPU）。
+- `LiquidAI/d1-omni-600M` 与 `ytbai/MiniCPM5-2B-Jev` 依赖 `transformers` / `peft`；`EdgeJev` 依赖 pip 包 `edgejev`，首次使用会自动 `edgejev build` 生成 ONNX + INT8 模型目录（位置见 `.env` 中 `EDGEJEV_MODEL_DIR`，可用 `EDGEJEV_AUTO_BUILD=false` 关闭自动构建）。私有/受限仓库可通过 `HF_TOKEN` 环境变量提供令牌。

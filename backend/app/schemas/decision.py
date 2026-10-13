@@ -36,7 +36,7 @@ class DecisionRequest(BaseModel):
     )
     model: str | None = Field(
         default=None,
-        description="Optional decision model identifier (e.g. 'LiquidAI/d1-omni-600M', 'MiniCPM5-2B-Jev', or 'EdgeJev')"
+        description="Optional decision model identifier (e.g. 'LiquidAI/d1-omni-600M', 'ytbai/MiniCPM5-2B-Jev', or 'EdgeJev')"
     )
     metadata: dict[str, Any] | None = Field(
         default=None,
@@ -65,7 +65,7 @@ class ScoreAnswer(BaseModel):
 class DecisionResponse(BaseModel):
     id: str
     model: str
-    engine: str  # "liquid-ai-d1-omni-600M" or "liquid-ai-calibrated-simulation"
+    engine: str  # e.g. "Liquid AI d1-omni-600M (Native Engine)"
     answers: dict[str, Any]
     usage: UsageInfo
     latency_ms: float

@@ -13,7 +13,7 @@ from app.schemas.decision import (
     UsageInfo,
     QuestionDefinition,
 )
-from app.services.model_engine import model_engine
+from app.services.model_engine import model_engine, ModelNotReadyError
 from app.services.tokenizer import calculate_decision_tokens
 from app.services.key_service import KeyService
 from app.services.analytics_service import AnalyticsService
@@ -180,9 +180,15 @@ async def predict_decision(
     # 3. Model Inference (Liquid AI d1-omni-600M, MiniCPM5-2B-Jev, or EdgeJev)
     request_id = f"dec_{uuid.uuid4().hex[:12]}"
     target_model_id = payload.model or model_engine.model_id
-    answers, latency_ms, engine_name = await model_engine.predict(
-        payload.input, payload.questions, model_id=payload.model, image=payload.image
-    )
+    try:
+        answers, latency_ms, engine_name = await model_engine.predict(
+            payload.input, payload.questions, model_id=payload.model, image=payload.image
+        )
+    except ModelNotReadyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e),
+        )
 
     # 4. Token deduction & Usage logging
     types_list = [q.type for q in payload.questions.values()]

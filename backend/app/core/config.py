@@ -13,7 +13,16 @@ class Settings(BaseSettings):
     MODEL_ID: str = "LiquidAI/d1-omni-600M"
     MODEL_DEVICE: str = "auto"  # auto, mps, cuda, cpu
     MODEL_CACHE_DIR: str = str(BASE_DIR / ".cache" / "models")
-    PREFER_LOCAL_SIMULATION: bool = False  # If True or if weights not present, seamlessly use calibrated simulation
+
+    # When True, switching between models keeps previously loaded weights resident
+    # ("simple cache"); when False, only the active model is kept in memory.
+    MODEL_CACHE_ENABLED: bool = False
+    
+    # EdgeJev (pip package `edgejev`) runtime configuration.
+    # The ONNX/INT8 model directory is produced by `edgejev build`.
+    EDGEJEV_MODEL_DIR: str = str(BASE_DIR / ".cache" / "edgejev")
+    EDGEJEV_BACKEND: str = "laya"
+    EDGEJEV_AUTO_BUILD: bool = True
     
     # Database
     DATABASE_URL: str = f"sqlite+aiosqlite:///{BASE_DIR}/jev_decision.db"

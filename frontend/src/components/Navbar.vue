@@ -21,21 +21,8 @@
 
     <!-- Right Controls -->
     <div class="flex-none flex items-center gap-2 sm:gap-3">
-      <!-- Model Status Badge -->
-      <div
-        class="badge gap-1.5 py-3 px-3 cursor-pointer select-none transition-all hover:opacity-80"
-        :class="modelBadgeClass"
-        @click="showModelModal = true"
-        title="点击查看 Liquid AI 模型状态"
-      >
-        <span class="relative flex h-2 w-2">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" :class="modelDotClass"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2" :class="modelDotClass"></span>
-        </span>
-        <span class="font-medium text-xs">
-          {{ modelStatusText }}
-        </span>
-      </div>
+      <!-- Model Status Badge & Switcher -->
+      <ModelSwitcher />
 
       <!-- Theme Controller Dropdown -->
       <div class="dropdown dropdown-end">
@@ -90,141 +77,21 @@
         </ul>
       </div>
     </div>
-
-    <!-- Model Status & Selection Modal -->
-    <dialog class="modal" :class="{ 'modal-open': showModelModal }">
-      <div class="modal-box max-w-xl">
-        <h3 class="font-bold text-lg flex items-center justify-between pb-2 border-b border-base-300">
-          <div class="flex items-center gap-2">
-            <span>🧠 决策模型管理与运行状态</span>
-          </div>
-          <button class="btn btn-xs btn-ghost btn-circle" @click="showModelModal = false">✕</button>
-        </h3>
-        
-        <!-- Model List & Switcher -->
-        <div class="py-4 space-y-4">
-          <div>
-            <div class="text-xs font-semibold text-base-content/70 mb-2.5">
-              可选决策模型 (点击切换当前中台活跃模型):
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div
-                v-for="m in modelStore.availableModels"
-                :key="m.id"
-                class="p-3.5 rounded-xl border transition-all cursor-pointer relative"
-                :class="m.id === modelStore.activeModelId ? 'border-primary bg-primary/10 shadow-sm' : 'border-base-300 bg-base-200 hover:border-base-content/30'"
-                @click="modelStore.switchModel(m.id)"
-              >
-                <div class="flex items-center justify-between mb-1.5">
-                  <span class="font-bold text-xs">{{ m.name }}</span>
-                  <span
-                    class="badge badge-xs font-mono"
-                    :class="m.id === modelStore.activeModelId ? 'badge-primary' : 'badge-ghost'"
-                  >
-                    {{ m.id === modelStore.activeModelId ? '当前生效' : '点击切换' }}
-                  </span>
-                </div>
-                <div class="text-[11px] text-base-content/70 line-clamp-2 mb-2 leading-relaxed">
-                  {{ m.description }}
-                </div>
-                <div class="flex items-center justify-between text-[10px] text-base-content/60 font-mono">
-                  <span>{{ m.parameters }} · {{ m.provider }}</span>
-                  <span class="text-success">{{ m.typical_latency_ms }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Current Active Model Details -->
-          <div class="bg-base-200/60 rounded-xl p-3.5 border border-base-300 space-y-2 text-xs" v-if="modelStore.status">
-            <div class="font-semibold text-base-content/80 text-xs mb-1">
-              当前活跃模型运行参数:
-            </div>
-            <div class="flex justify-between border-b border-base-300/50 pb-1.5">
-              <span class="text-base-content/60">当前模型标识:</span>
-              <span class="font-mono font-medium text-primary">{{ modelStore.status.model_id }}</span>
-            </div>
-            <div class="flex justify-between border-b border-base-300/50 pb-1.5">
-              <span class="text-base-content/60">模型架构:</span>
-              <span class="font-mono text-xs">{{ modelStore.status.architecture }}</span>
-            </div>
-            <div class="flex justify-between border-b border-base-300/50 pb-1.5">
-              <span class="text-base-content/60">运行引擎状态:</span>
-              <span class="badge badge-xs font-medium" :class="modelStore.status.mode === 'real' ? 'badge-success' : 'badge-info'">
-                {{ modelStore.status.mode === 'real' ? '本地 PyTorch 原生推理' : '高精度校准仿真引擎' }}
-              </span>
-            </div>
-            <div class="flex justify-between border-b border-base-300/50 pb-1.5">
-              <span class="text-base-content/60">加速计算设备:</span>
-              <span class="badge badge-outline badge-xs uppercase">{{ modelStore.status.device }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-base-content/60">支持决策原语:</span>
-              <span class="text-xs">Choice, Noul, Score</span>
-            </div>
-            <div v-if="modelStore.status.load_error" class="alert alert-warning text-xs mt-2 py-2">
-              <span>权重状态: {{ modelStore.status.load_error }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-action flex justify-between items-center pt-2 border-t border-base-300">
-          <button
-            class="btn btn-sm btn-outline btn-primary"
-            :disabled="modelStore.actionLoading"
-            @click="modelStore.triggerLoadReal(true)"
-          >
-            <span v-if="modelStore.actionLoading" class="loading loading-spinner loading-xs"></span>
-            加载 / 重载权重
-          </button>
-          <button class="btn btn-sm" @click="showModelModal = false">关闭</button>
-        </div>
-      </div>
-      <form method="dialog" class="modal-backdrop" @click="showModelModal = false">
-        <button>close</button>
-      </form>
-    </dialog>
   </header>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useThemeStore } from '@/stores/themeStore'
-import { useModelStore } from '@/stores/modelStore'
 import { useAuthStore } from '@/stores/authStore'
+import ModelSwitcher from '@/components/ModelSwitcher.vue'
 
 const router = useRouter()
 const themeStore = useThemeStore()
-const modelStore = useModelStore()
 const authStore = useAuthStore()
-const showModelModal = ref(false)
 
 async function handleLogout() {
   await authStore.logout()
   router.push('/login')
 }
-
-onMounted(() => {
-  modelStore.loadStatus()
-})
-
-const modelStatusText = computed(() => {
-  if (modelStore.loading) return '检测模型中...'
-  const isEdgeJev = modelStore.activeModelId?.includes('EdgeJev')
-  const isMiniCPM = modelStore.activeModelId?.includes('MiniCPM')
-  const shortName = isEdgeJev ? 'EdgeJev' : (isMiniCPM ? 'MiniCPM5-2B' : 'd1-omni-600M')
-  if (modelStore.status?.mode === 'real') return `${shortName} (已加载)`
-  return `${shortName} (在线)`
-})
-
-const modelBadgeClass = computed(() => {
-  if (modelStore.status?.mode === 'real') return 'badge-success text-success-content'
-  return 'badge-primary text-primary-content'
-})
-
-const modelDotClass = computed(() => {
-  if (modelStore.status?.mode === 'real') return 'bg-success-content'
-  return 'bg-primary-content'
-})
 </script>

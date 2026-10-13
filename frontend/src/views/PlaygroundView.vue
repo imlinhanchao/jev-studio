@@ -436,7 +436,7 @@
                     {{ decisionStore.currentResponse.model.includes('EdgeJev') ? 'EdgeJev' : (decisionStore.currentResponse.model.includes('MiniCPM') ? 'MiniCPM5-2B' : 'd1-omni-600M') }}
                   </div>
                   <div class="text-[9px] text-base-content/50 truncate">
-                    {{ decisionStore.currentResponse.model.includes('EdgeJev') ? '120M Edge' : (decisionStore.currentResponse.model.includes('MiniCPM') ? '2.4B Jev-Tuned' : '600M LFM') }}
+                    {{ decisionStore.currentResponse.model.includes('EdgeJev') ? '322M Edge' : (decisionStore.currentResponse.model.includes('MiniCPM') ? '2.0B Jev-Tuned' : '600M LFM') }}
                   </div>
                 </div>
               </div>

@@ -44,51 +44,8 @@
 
       <!-- Right: Model Switcher, Theme, and Profile -->
       <div class="flex-none flex items-center gap-2 sm:gap-3">
-        <!-- Model Switcher Dropdown in Header -->
-        <div class="dropdown dropdown-end">
-          <div
-            tabindex="0"
-            role="button"
-            class="btn btn-sm btn-ghost border border-base-300 bg-base-200/60 hover:bg-base-200 gap-1.5 font-normal px-2.5"
-            title="点击切换决策模型"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-            </svg>
-            <span class="text-xs font-bold">{{ decisionStore.currentModelShortName }}</span>
-            <span class="badge badge-xs font-mono badge-neutral">{{ decisionStore.currentModelMeta.tag }}</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 opacity-60 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-
-          <ul
-            tabindex="0"
-            class="dropdown-content menu p-2 shadow-xl bg-base-200 rounded-box w-64 z-50 text-xs border border-base-300 space-y-1 mt-1"
-          >
-            <li class="menu-title px-2 py-1 text-[11px] text-base-content/60">
-              切换决策模型
-            </li>
-            <li v-for="m in decisionStore.modelOptions" :key="m.id">
-              <button
-                class="flex items-center justify-between py-2 rounded-lg"
-                :class="{ 'active': decisionStore.selectedModelId === m.id }"
-                @click="handleSelectModel(m.id)"
-              >
-                <div class="flex flex-col items-start gap-0.5">
-                  <span class="font-bold text-xs">{{ m.shortName }}</span>
-                  <span class="text-[10px] opacity-70 font-mono">{{ m.architecture }} · {{ m.latency }}</span>
-                </div>
-                <span
-                  class="badge badge-xs font-mono"
-                  :class="decisionStore.selectedModelId === m.id ? 'badge-neutral' : 'badge-ghost'"
-                >
-                  {{ m.tag }}
-                </span>
-              </button>
-            </li>
-          </ul>
-        </div>
+        <!-- Shared Model Switcher Component -->
+        <ModelSwitcher />
 
         <!-- Theme Controller Dropdown -->
         <div class="dropdown dropdown-end">
@@ -166,23 +123,12 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useThemeStore } from '@/stores/themeStore'
-import { useDecisionStore } from '@/stores/decisionStore'
-import { useModelStore } from '@/stores/modelStore'
 import { useAuthStore } from '@/stores/authStore'
+import ModelSwitcher from '@/components/ModelSwitcher.vue'
 
 const router = useRouter()
 const themeStore = useThemeStore()
-const decisionStore = useDecisionStore()
-const modelStore = useModelStore()
 const authStore = useAuthStore()
-
-function handleSelectModel(modelId: string) {
-  decisionStore.selectModel(modelId)
-  modelStore.switchModel(modelId).catch(() => {})
-  if (document.activeElement instanceof HTMLElement) {
-    document.activeElement.blur()
-  }
-}
 
 async function handleLogout() {
   await authStore.logout()
